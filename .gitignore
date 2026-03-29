@@ -1,0 +1,29 @@
+# Claude Code 로컬 설정
+.claude/settings.local.json
+.claude/.gh-token
+
+# OS
+.DS_Store
+Thumbs.db
+
+# OMC 상태
+.omc/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.mcpb

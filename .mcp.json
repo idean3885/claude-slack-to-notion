@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "slack-to-notion": {
+      "command": "uvx",
+      "args": ["slack-to-notion-mcp"],
+      "env": {
+        "SLACK_BOT_TOKEN": "${SLACK_BOT_TOKEN}",
+        "SLACK_USER_TOKEN": "${SLACK_USER_TOKEN}",
+        "NOTION_API_KEY": "${NOTION_API_KEY}",
+        "NOTION_PARENT_PAGE_URL": "${NOTION_PARENT_PAGE_URL}"
+      }
+    }
+  }
+}
