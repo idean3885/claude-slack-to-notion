@@ -379,6 +379,33 @@ def create_notion_page(
 
 
 @mcp.tool()
+def list_notion_pages(parent_page_url_or_id: str = "") -> str:
+    """Notion 상위 페이지 하위의 페이지 목록을 조회한다.
+
+    상위 페이지를 지정하지 않으면 NOTION_PARENT_PAGE_URL 환경변수의 페이지를 사용한다.
+
+    Args:
+        parent_page_url_or_id: 상위 페이지 URL 또는 ID (미지정 시 환경변수 사용)
+
+    Returns:
+        하위 페이지 목록 (JSON 형식: [{"id": "...", "title": "..."}])
+    """
+    try:
+        client = _get_notion_client()
+        raw = parent_page_url_or_id or os.environ.get("NOTION_PARENT_PAGE_URL", "")
+        if not raw:
+            return "[에러] NOTION_PARENT_PAGE_URL 환경변수가 설정되지 않았습니다. 상위 페이지 URL 또는 ID를 입력하세요."
+        page_id = extract_page_id(raw)
+        pages = client.list_child_pages(page_id)
+        return json.dumps(pages, ensure_ascii=False)
+    except NotionClientError as e:
+        return f"[에러] {e.message}"
+    except Exception as e:
+        logger.exception("예상치 못한 에러 발생")
+        return f"[에러] Notion 페이지 목록 조회 실패: {e!s}"
+
+
+@mcp.tool()
 def read_notion_page(page_url_or_id: str) -> str:
     """Notion 페이지의 내용을 읽는다.
 

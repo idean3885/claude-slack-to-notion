@@ -785,3 +785,90 @@ class TestNotionClientErrorFormatting:
     def test_unknown_error(self):
         msg = self.client._format_error_message(self._make_error("rate_limited"))
         assert "rate_limited" in msg
+
+
+# ──────────────────────────────────────────────
+# TestListChildPages
+# ──────────────────────────────────────────────
+
+
+class TestListChildPages:
+    """NotionClient.list_child_pages 단위 테스트."""
+
+    def setup_method(self):
+        with patch("slack_to_notion.notion_client.Client"):
+            self.client = NotionClient("fake-api-key")
+            self.mock_api = self.client.client
+
+    def test_success_multiple_pages(self):
+        """여러 child_page가 있을 때 id와 title을 수집한다."""
+        self.mock_api.blocks.children.list.return_value = {
+            "results": [
+                {"type": "child_page", "id": "page-id-1", "child_page": {"title": "페이지 1"}},
+                {"type": "child_page", "id": "page-id-2", "child_page": {"title": "페이지 2"}},
+                {"type": "paragraph"},
+            ],
+            "has_more": False,
+        }
+        result = self.client.list_child_pages("parent-id")
+        assert result == [
+            {"id": "page-id-1", "title": "페이지 1"},
+            {"id": "page-id-2", "title": "페이지 2"},
+        ]
+
+    def test_empty_result(self):
+        """하위 페이지가 없을 때 빈 리스트를 반환한다."""
+        self.mock_api.blocks.children.list.return_value = {
+            "results": [],
+            "has_more": False,
+        }
+        result = self.client.list_child_pages("parent-id")
+        assert result == []
+
+    def test_pagination(self):
+        """has_more=True 시 next_cursor로 다음 페이지를 조회한다."""
+        first_response = {
+            "results": [
+                {"type": "child_page", "id": "page-id-1", "child_page": {"title": "첫 번째"}},
+            ],
+            "has_more": True,
+            "next_cursor": "cursor-xyz",
+        }
+        second_response = {
+            "results": [
+                {"type": "child_page", "id": "page-id-2", "child_page": {"title": "두 번째"}},
+            ],
+            "has_more": False,
+            "next_cursor": None,
+        }
+        self.mock_api.blocks.children.list.side_effect = [first_response, second_response]
+
+        result = self.client.list_child_pages("parent-id")
+        assert len(result) == 2
+        assert result[0] == {"id": "page-id-1", "title": "첫 번째"}
+        assert result[1] == {"id": "page-id-2", "title": "두 번째"}
+
+        calls = self.mock_api.blocks.children.list.call_args_list
+        assert len(calls) == 2
+        assert calls[1][1]["start_cursor"] == "cursor-xyz"
+
+    def test_api_error_raises_notion_client_error(self):
+        """APIResponseError 발생 시 NotionClientError로 변환된다."""
+        import httpx
+        from notion_client.errors import APIResponseError
+
+        from slack_to_notion.notion_client import NotionClientError
+
+        err = APIResponseError(
+            code="object_not_found",
+            status=404,
+            message="Not found",
+            headers=httpx.Headers(),
+            raw_body_text="",
+        )
+        self.mock_api.blocks.children.list.side_effect = err
+
+        with pytest.raises(NotionClientError) as exc_info:
+            self.client.list_child_pages("nonexistent-id")
+
+        assert "찾을 수 없습니다" in exc_info.value.message

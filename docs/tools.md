@@ -25,6 +25,7 @@ claude-slack-to-notion이 Claude Code에 제공하는 MCP 도구 목록입니다
 
 | 도구 | 설명 |
 |------|------|
+| `list_notion_pages` | Notion 상위 페이지 하위의 페이지 목록 조회 |
 | `create_notion_page` | 분석 결과를 Notion 페이지로 생성 |
 | `read_notion_page` | Notion 페이지 내용을 마크다운으로 읽기 |
 | `save_analysis_result` | 분석 결과를 로컬 JSON 파일로 백업 |

@@ -584,6 +584,69 @@ class TestReadNotionPage:
         assert "테스트 페이지" in result
 
 
+class TestListNotionPages:
+    """list_notion_pages 도구 테스트."""
+
+    def _call_tool(self, parent_page_url_or_id="", env_vars=None, mock_pages=None):
+        env = {"NOTION_API_KEY": "fake-key"}
+        if env_vars:
+            env.update(env_vars)
+
+        with patch.dict("os.environ", env, clear=False), \
+             patch("slack_to_notion.mcp_server._notion_client", None), \
+             patch("slack_to_notion.notion_client.Client") as mock_cls:
+            mock_api = mock_cls.return_value
+            mock_api.blocks.children.list.return_value = {
+                "results": mock_pages if mock_pages is not None else [],
+                "has_more": False,
+            }
+
+            from slack_to_notion.mcp_server import list_notion_pages
+            return list_notion_pages(parent_page_url_or_id)
+
+    def test_success(self):
+        """하위 페이지 목록을 JSON으로 반환한다."""
+        import json
+
+        pages = [
+            {"type": "child_page", "id": "page-id-1", "child_page": {"title": "페이지 1"}},
+            {"type": "child_page", "id": "page-id-2", "child_page": {"title": "페이지 2"}},
+        ]
+        result = self._call_tool(
+            parent_page_url_or_id="abc123def456abc123def456abc123de",
+            mock_pages=pages,
+        )
+        parsed = json.loads(result)
+        assert len(parsed) == 2
+        assert parsed[0]["id"] == "page-id-1"
+        assert parsed[0]["title"] == "페이지 1"
+
+    def test_uses_env_var_when_no_argument(self):
+        """parent_page_url_or_id 미지정 시 NOTION_PARENT_PAGE_URL 환경변수를 사용한다."""
+        import json
+
+        pages = [
+            {"type": "child_page", "id": "env-page-id", "child_page": {"title": "환경변수 페이지"}},
+        ]
+        result = self._call_tool(
+            parent_page_url_or_id="",
+            env_vars={"NOTION_PARENT_PAGE_URL": "abc123def456abc123def456abc123de"},
+            mock_pages=pages,
+        )
+        parsed = json.loads(result)
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "환경변수 페이지"
+
+    def test_missing_env_var_error(self):
+        """parent_page_url_or_id와 환경변수 모두 없으면 에러 메시지를 반환한다."""
+        with patch.dict("os.environ", {"NOTION_API_KEY": "fake-key"}, clear=True), \
+             patch("slack_to_notion.mcp_server._notion_client", None):
+            from slack_to_notion.mcp_server import list_notion_pages
+            result = list_notion_pages("")
+            assert "[에러]" in result
+            assert "NOTION_PARENT_PAGE_URL" in result
+
+
 class TestMainHelp:
     """main 함수 --help 플래그 테스트."""
 

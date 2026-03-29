@@ -200,6 +200,35 @@ class NotionClient:
         except APIResponseError as e:
             raise NotionClientError(self._format_error_message(e)) from e
 
+    def list_child_pages(self, page_id: str) -> list[dict]:
+        """상위 페이지 하위의 모든 child_page를 조회한다.
+
+        pagination 처리하여 전체 목록을 반환한다.
+
+        Returns:
+            [{"id": "page_id", "title": "페이지 제목"}, ...]
+        """
+        try:
+            pages = []
+            cursor = None
+            while True:
+                kwargs: dict = {"block_id": page_id}
+                if cursor:
+                    kwargs["start_cursor"] = cursor
+                response = self.client.blocks.children.list(**kwargs)
+                for block in response.get("results", []):
+                    if block["type"] == "child_page":
+                        pages.append({
+                            "id": block["id"],
+                            "title": block.get("child_page", {}).get("title", ""),
+                        })
+                if not response.get("has_more"):
+                    break
+                cursor = response.get("next_cursor")
+            return pages
+        except APIResponseError as e:
+            raise NotionClientError(self._format_error_message(e)) from e
+
     def create_analysis_page(
         self,
         parent_page_id: str,
