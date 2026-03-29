@@ -4,7 +4,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| 이슈 | [#15](https://github.com/dykim-base-project/claude-slack-to-notion/issues/15) |
+| 이슈 | [#15](https://github.com/idean3885/claude-slack-to-notion/issues/15) |
 | 브랜치 | `refactor/15` |
 | 날짜 | 2026-02-15 |
 | 유형 | 리팩토링 |

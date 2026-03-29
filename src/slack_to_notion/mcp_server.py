@@ -502,11 +502,11 @@ def main():
         print("  uvx slack-to-notion-mcp --help    이 도움말 표시")
         print()
         print("설치:")
-        print("  curl -sL https://raw.githubusercontent.com/dykim-base-project/")
+        print("  curl -sL https://raw.githubusercontent.com/idean3885/")
         print("    claude-slack-to-notion/main/scripts/setup.sh | bash")
         print()
         print("자세한 내용:")
-        print("  https://github.com/dykim-base-project/claude-slack-to-notion")
+        print("  https://github.com/idean3885/claude-slack-to-notion")
         return
     pkg_version = _get_package_version()
     logger.info("Slack-to-Notion MCP 서버 시작 (v%s)", pkg_version)

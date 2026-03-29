@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-GUIDE_URL="https://github.com/dykim-base-project/claude-slack-to-notion#api-토큰-설정"
+GUIDE_URL="https://github.com/idean3885/claude-slack-to-notion#api-토큰-설정"
 
 print_step() {
   echo -e "\n${BLUE}▶ $1${NC}"

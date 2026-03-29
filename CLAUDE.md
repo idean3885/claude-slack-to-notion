@@ -95,7 +95,7 @@ Slack 메시지/스레드를 분석하여 이슈/태스크로 구조화하고, N
 |------|------|
 | 목적 | Slack 메시지/스레드 → AI 분석 → Notion 페이지 정리 및 협업 |
 | 형태 | Claude Code 플러그인 |
-| 리모트 | `https://github.com/dykim-base-project/claude-slack-to-notion.git` |
+| 리모트 | `https://github.com/idean3885/claude-slack-to-notion.git` |
 
 ### Git Flow (이 레포)
 

@@ -42,7 +42,7 @@ claude-slack-to-notion/
 ## 로컬 개발 환경
 
 ```bash
-git clone https://github.com/dykim-base-project/claude-slack-to-notion.git
+git clone https://github.com/idean3885/claude-slack-to-notion.git
 cd claude-slack-to-notion
 uv sync --dev
 ```
@@ -77,7 +77,7 @@ pyproject.toml version 변경 → main push
 
 ## 기여 방법
 
-이슈 및 PR은 [GitHub 레포지토리](https://github.com/dykim-base-project/claude-slack-to-notion)에서 관리합니다.
+이슈 및 PR은 [GitHub 레포지토리](https://github.com/idean3885/claude-slack-to-notion)에서 관리합니다.
 개발 프로세스(Git Flow, 브랜치 전략, 커밋 컨벤션)는 [CLAUDE.md](../CLAUDE.md)를 참고하세요.
 
 ## 참고 자료

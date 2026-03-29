@@ -9,7 +9,7 @@
 터미널에 아래 명령어를 붙여넣으면 안내에 따라 토큰을 입력하고 자동으로 설치됩니다:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/dykim-base-project/claude-slack-to-notion/main/scripts/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/idean3885/claude-slack-to-notion/main/scripts/setup.sh | bash
 ```
 
 스크립트가 토큰 형식을 검증하고 `claude mcp add`를 자동 실행합니다.
@@ -35,7 +35,7 @@ claude mcp add slack-to-notion \
 
 ```bash
 # 방법 1: setup.sh (토큰 자동 재사용, 권장)
-curl -sL https://raw.githubusercontent.com/dykim-base-project/claude-slack-to-notion/main/scripts/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/idean3885/claude-slack-to-notion/main/scripts/setup.sh | bash
 
 # 방법 2: 수동 (영구 설치 제거 + 캐시 정리)
 uv tool uninstall slack-to-notion-mcp 2>/dev/null; uv cache clean slack-to-notion-mcp --force
@@ -69,7 +69,7 @@ claude mcp list
 대화형 설치 스크립트를 다시 실행하면 기존 설정을 덮어씁니다.
 
 ```bash
-curl -sL https://raw.githubusercontent.com/dykim-base-project/claude-slack-to-notion/main/scripts/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/idean3885/claude-slack-to-notion/main/scripts/setup.sh | bash
 ```
 
 **삭제:**

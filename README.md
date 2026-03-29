@@ -35,7 +35,7 @@ graph LR
 
 **설치**
 
-1. [GitHub Releases](https://github.com/dykim-base-project/claude-slack-to-notion/releases)에서 최신 `slack-to-notion-mcp.mcpb` 파일을 다운로드합니다
+1. [GitHub Releases](https://github.com/idean3885/claude-slack-to-notion/releases)에서 최신 `slack-to-notion-mcp.mcpb` 파일을 다운로드합니다
 2. 다운로드한 `.mcpb` 파일을 **더블클릭**합니다
 3. Claude Desktop이 열리며 토큰 입력 화면이 나타납니다 — 위에서 준비한 3개의 값을 붙여넣으세요
 4. **확장 활성화**: 설치 후 **설정**(`⌘ + ,`) → **Extensions** → `Slack to Notion` 항목의 **토글을 켜주세요** (설치 직후에는 비활성화 상태입니다)
@@ -137,7 +137,7 @@ JSON 설정 파일을 직접 편집하는 방법입니다. Desktop Extension 설
 터미널에 아래 명령어를 붙여넣으세요. 안내에 따라 토큰을 입력하면 자동으로 설치됩니다:
 
 ```bash
-curl -sL https://raw.githubusercontent.com/dykim-base-project/claude-slack-to-notion/main/scripts/setup.sh | bash
+curl -sL https://raw.githubusercontent.com/idean3885/claude-slack-to-notion/main/scripts/setup.sh | bash
 ```
 
 > 토큰 발급이 처음이라면 [설치 및 토큰 설정 가이드](docs/setup-guide.md)를 참고하세요.

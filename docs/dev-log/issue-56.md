@@ -4,7 +4,7 @@
 
 | 항목 | 내용 |
 |------|------|
-| 이슈 | [#56](https://github.com/dykim-base-project/claude-slack-to-notion/issues/56) |
+| 이슈 | [#56](https://github.com/idean3885/claude-slack-to-notion/issues/56) |
 | 브랜치 | `feat/56` |
 | 날짜 | 2026-02-18 |
 | 유형 | 아키텍처 전환 |
@@ -93,7 +93,7 @@ uvx slack-to-notion-mcp
 
 ```bash
 # 6단계 필요
-git clone https://github.com/dykim-base-project/claude-slack-to-notion.git
+git clone https://github.com/idean3885/claude-slack-to-notion.git
 cd claude-slack-to-notion
 cp .env.example .env
 # .env 편집...
