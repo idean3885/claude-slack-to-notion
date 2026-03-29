@@ -698,3 +698,74 @@ class TestFetchMessagesFieldFiltering:
             assert set(msg.keys()).issubset(allowed)
             assert "blocks" not in msg
             assert "reactions" not in msg
+
+
+class TestSearchNotion:
+    """search_notion 도구 테스트."""
+
+    def _call_tool(self, query="", limit=20, search_pages_return=None, side_effect=None):
+        env = {"NOTION_API_KEY": "fake-key"}
+        with patch.dict("os.environ", env, clear=False), \
+             patch("slack_to_notion.mcp_server._notion_client", None), \
+             patch("slack_to_notion.notion_client.Client") as mock_cls:
+            mock_api = mock_cls.return_value
+            if side_effect is not None:
+                mock_api.search.side_effect = side_effect
+            else:
+                mock_api.search.return_value = {
+                    "results": search_pages_return if search_pages_return is not None else []
+                }
+            from slack_to_notion.mcp_server import search_notion
+            return search_notion(query=query, limit=limit)
+
+    def test_success(self):
+        """키워드 검색 시 JSON 결과를 반환한다."""
+        import json
+
+        pages = [
+            {
+                "id": "page-1",
+                "url": "https://notion.so/page-1",
+                "last_edited_time": "2026-03-29T00:00:00.000Z",
+                "properties": {
+                    "title": {
+                        "type": "title",
+                        "title": [{"type": "text", "text": {"content": "검색된 페이지"}}],
+                    }
+                },
+            }
+        ]
+        result = self._call_tool(query="검색", search_pages_return=pages)
+        parsed = json.loads(result)
+        assert len(parsed) == 1
+        assert parsed[0]["title"] == "검색된 페이지"
+        assert "[에러]" not in result
+
+    def test_empty_query(self):
+        """빈 쿼리 시 전체 페이지 결과를 반환한다."""
+        import json
+
+        result = self._call_tool(query="", search_pages_return=[])
+        parsed = json.loads(result)
+        assert parsed == []
+
+    def test_notion_client_error(self):
+        """NotionClientError 발생 시 [에러] 메시지를 반환한다."""
+        import httpx
+        from notion_client.errors import APIResponseError
+
+        err = APIResponseError(
+            code="unauthorized",
+            status=401,
+            message="Unauthorized",
+            headers=httpx.Headers(),
+            raw_body_text="",
+        )
+        result = self._call_tool(query="테스트", side_effect=err)
+        assert "[에러]" in result
+
+    def test_unexpected_exception(self):
+        """예상치 못한 예외 발생 시 [에러] 메시지를 반환한다."""
+        result = self._call_tool(query="테스트", side_effect=RuntimeError("연결 실패"))
+        assert "[에러]" in result
+        assert "Notion 검색 실패" in result

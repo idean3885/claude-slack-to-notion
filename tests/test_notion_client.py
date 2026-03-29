@@ -872,3 +872,110 @@ class TestListChildPages:
             self.client.list_child_pages("nonexistent-id")
 
         assert "찾을 수 없습니다" in exc_info.value.message
+
+
+# ──────────────────────────────────────────────
+# TestSearchPages
+# ──────────────────────────────────────────────
+
+
+class TestSearchPages:
+    """NotionClient.search_pages 단위 테스트."""
+
+    def setup_method(self):
+        with patch("slack_to_notion.notion_client.Client"):
+            self.client = NotionClient("fake-api-key")
+            self.mock_api = self.client.client
+
+    def test_success_with_keyword(self):
+        """키워드 검색 시 일치하는 페이지 목록을 반환한다."""
+        self.mock_api.search.return_value = {
+            "results": [
+                {
+                    "id": "page-id-1",
+                    "url": "https://notion.so/page-1",
+                    "last_edited_time": "2026-03-29T00:00:00.000Z",
+                    "properties": {
+                        "title": {
+                            "type": "title",
+                            "title": [{"type": "text", "text": {"content": "검색 결과 페이지"}}],
+                        }
+                    },
+                }
+            ]
+        }
+        pages = self.client.search_pages(query="검색", page_size=10)
+        assert len(pages) == 1
+        assert pages[0]["id"] == "page-id-1"
+        assert pages[0]["title"] == "검색 결과 페이지"
+        assert pages[0]["url"] == "https://notion.so/page-1"
+        assert pages[0]["last_edited"] == "2026-03-29T00:00:00.000Z"
+        self.mock_api.search.assert_called_once_with(
+            query="검색",
+            filter={"property": "object", "value": "page"},
+            page_size=10,
+        )
+
+    def test_empty_query_returns_all_pages(self):
+        """빈 쿼리 시 접근 가능한 전체 페이지를 반환한다."""
+        self.mock_api.search.return_value = {
+            "results": [
+                {
+                    "id": "page-a",
+                    "url": "https://notion.so/page-a",
+                    "last_edited_time": "2026-03-01T00:00:00.000Z",
+                    "properties": {
+                        "title": {
+                            "type": "title",
+                            "title": [{"type": "text", "text": {"content": "페이지 A"}}],
+                        }
+                    },
+                },
+                {
+                    "id": "page-b",
+                    "url": "https://notion.so/page-b",
+                    "last_edited_time": "2026-03-02T00:00:00.000Z",
+                    "properties": {
+                        "title": {
+                            "type": "title",
+                            "title": [{"type": "text", "text": {"content": "페이지 B"}}],
+                        }
+                    },
+                },
+            ]
+        }
+        pages = self.client.search_pages()
+        assert len(pages) == 2
+        assert pages[0]["title"] == "페이지 A"
+        assert pages[1]["title"] == "페이지 B"
+        self.mock_api.search.assert_called_once_with(
+            query="",
+            filter={"property": "object", "value": "page"},
+            page_size=20,
+        )
+
+    def test_empty_results(self):
+        """검색 결과가 없으면 빈 리스트를 반환한다."""
+        self.mock_api.search.return_value = {"results": []}
+        pages = self.client.search_pages(query="없는키워드")
+        assert pages == []
+
+    def test_api_error_raises_notion_client_error(self):
+        """API 에러 발생 시 NotionClientError로 감싸서 던진다."""
+        import httpx
+        from notion_client.errors import APIResponseError
+        from slack_to_notion.notion_client import NotionClientError
+
+        err = APIResponseError(
+            code="unauthorized",
+            status=401,
+            message="Unauthorized",
+            headers=httpx.Headers(),
+            raw_body_text="",
+        )
+        self.mock_api.search.side_effect = err
+
+        with pytest.raises(NotionClientError) as exc_info:
+            self.client.search_pages(query="테스트")
+
+        assert "API 키" in exc_info.value.message

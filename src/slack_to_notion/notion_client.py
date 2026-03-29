@@ -419,6 +419,49 @@ class NotionClient:
         except APIResponseError as e:
             raise NotionClientError(self._format_error_message(e)) from e
 
+    def search_pages(self, query: str = "", page_size: int = 20) -> list[dict]:
+        """Integration에 연결된 페이지를 검색한다.
+
+        Notion search API를 사용하여 키워드로 페이지를 검색한다.
+        query가 빈 문자열이면 접근 가능한 전체 페이지를 반환한다.
+
+        Args:
+            query: 검색 키워드 (빈 문자열이면 전체 조회)
+            page_size: 결과 수 (기본 20, 최대 100)
+
+        Returns:
+            [{"id": "page_id", "title": "페이지 제목", "url": "페이지 URL", "last_edited": "2026-03-29T..."}, ...]
+        """
+        try:
+            response = self.client.search(
+                query=query,
+                filter={"property": "object", "value": "page"},
+                page_size=page_size,
+            )
+            pages = []
+            for item in response.get("results", []):
+                page_id = item.get("id", "")
+                url = item.get("url", "")
+                last_edited = item.get("last_edited_time", "")
+
+                # title 타입 속성에서 제목 추출
+                title = ""
+                properties = item.get("properties", {})
+                for prop in properties.values():
+                    if prop.get("type") == "title":
+                        title = self._extract_rich_text(prop.get("title", []))
+                        break
+
+                pages.append({
+                    "id": page_id,
+                    "title": title,
+                    "url": url,
+                    "last_edited": last_edited,
+                })
+            return pages
+        except APIResponseError as e:
+            raise NotionClientError(self._format_error_message(e)) from e
+
     def build_page_blocks(self, content_text: str) -> list[dict]:
         """자유 형식 텍스트를 Notion 블록으로 변환."""
         blocks = []

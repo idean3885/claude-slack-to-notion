@@ -428,6 +428,31 @@ def read_notion_page(page_url_or_id: str) -> str:
 
 
 @mcp.tool()
+def search_notion(query: str = "", limit: int = 20) -> str:
+    """Notion 워크스페이스에서 페이지를 검색한다.
+
+    Integration에 연결된 모든 페이지를 키워드로 검색한다.
+    키워드를 지정하지 않으면 접근 가능한 전체 페이지를 조회한다.
+
+    Args:
+        query: 검색 키워드 (미지정 시 전체 조회)
+        limit: 결과 수 (기본 20, 최대 100)
+
+    Returns:
+        검색 결과 페이지 목록 (JSON 형식)
+    """
+    try:
+        client = _get_notion_client()
+        pages = client.search_pages(query, limit)
+        return json.dumps(pages, ensure_ascii=False)
+    except NotionClientError as e:
+        return f"[에러] {e.message}"
+    except Exception as e:
+        logger.exception("예상치 못한 에러 발생")
+        return f"[에러] Notion 검색 실패: {e!s}"
+
+
+@mcp.tool()
 def save_analysis_result(data_json: str, filename: str = "") -> str:
     """분석 결과를 로컬 JSON 파일로 백업한다.
 
