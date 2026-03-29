@@ -524,6 +524,240 @@ class TestNotionClient:
         self.mock_api.blocks.children.append.assert_not_called()
 
 
+class TestExtractRichText:
+    """_extract_rich_text 단위 테스트."""
+
+    def setup_method(self):
+        with patch("slack_to_notion.notion_client.Client"):
+            self.client = NotionClient("fake-api-key")
+
+    def _seg(self, content, *, bold=False, italic=False, code=False, strikethrough=False, link_url=""):
+        seg = {"type": "text", "text": {"content": content}}
+        if link_url:
+            seg["text"]["link"] = {"url": link_url}
+        annotations = {}
+        if bold:
+            annotations["bold"] = True
+        if italic:
+            annotations["italic"] = True
+        if code:
+            annotations["code"] = True
+        if strikethrough:
+            annotations["strikethrough"] = True
+        if annotations:
+            seg["annotations"] = annotations
+        return seg
+
+    def test_plain_text(self):
+        result = self.client._extract_rich_text([self._seg("안녕하세요")])
+        assert result == "안녕하세요"
+
+    def test_bold(self):
+        result = self.client._extract_rich_text([self._seg("굵게", bold=True)])
+        assert result == "**굵게**"
+
+    def test_italic(self):
+        result = self.client._extract_rich_text([self._seg("기울임", italic=True)])
+        assert result == "*기울임*"
+
+    def test_code(self):
+        result = self.client._extract_rich_text([self._seg("코드", code=True)])
+        assert result == "`코드`"
+
+    def test_strikethrough(self):
+        result = self.client._extract_rich_text([self._seg("취소선", strikethrough=True)])
+        assert result == "~~취소선~~"
+
+    def test_link(self):
+        result = self.client._extract_rich_text([self._seg("링크", link_url="https://notion.so")])
+        assert result == "[링크](https://notion.so)"
+
+    def test_mixed_multiple_segments(self):
+        rich_text = [
+            self._seg("일반 "),
+            self._seg("볼드", bold=True),
+            self._seg(" 끝"),
+        ]
+        result = self.client._extract_rich_text(rich_text)
+        assert result == "일반 **볼드** 끝"
+
+    def test_empty_array(self):
+        result = self.client._extract_rich_text([])
+        assert result == ""
+
+
+class TestBlocksToMarkdown:
+    """_blocks_to_markdown 단위 테스트."""
+
+    def setup_method(self):
+        with patch("slack_to_notion.notion_client.Client"):
+            self.client = NotionClient("fake-api-key")
+
+    def _rt(self, text):
+        return [{"type": "text", "text": {"content": text}}]
+
+    def test_heading_1(self):
+        blocks = [{"type": "heading_1", "heading_1": {"rich_text": self._rt("제목1")}}]
+        assert self.client._blocks_to_markdown(blocks) == "# 제목1"
+
+    def test_heading_2(self):
+        blocks = [{"type": "heading_2", "heading_2": {"rich_text": self._rt("제목2")}}]
+        assert self.client._blocks_to_markdown(blocks) == "## 제목2"
+
+    def test_heading_3(self):
+        blocks = [{"type": "heading_3", "heading_3": {"rich_text": self._rt("제목3")}}]
+        assert self.client._blocks_to_markdown(blocks) == "### 제목3"
+
+    def test_paragraph(self):
+        blocks = [{"type": "paragraph", "paragraph": {"rich_text": self._rt("본문")}}]
+        assert self.client._blocks_to_markdown(blocks) == "본문"
+
+    def test_bulleted_list_item(self):
+        blocks = [{"type": "bulleted_list_item", "bulleted_list_item": {"rich_text": self._rt("항목")}}]
+        assert self.client._blocks_to_markdown(blocks) == "- 항목"
+
+    def test_numbered_list_item(self):
+        blocks = [{"type": "numbered_list_item", "numbered_list_item": {"rich_text": self._rt("첫째")}}]
+        assert self.client._blocks_to_markdown(blocks) == "1. 첫째"
+
+    def test_code_block(self):
+        blocks = [{"type": "code", "code": {"language": "python", "rich_text": self._rt("print(1)")}}]
+        result = self.client._blocks_to_markdown(blocks)
+        assert result == "```python\nprint(1)\n```"
+
+    def test_divider(self):
+        blocks = [{"type": "divider", "divider": {}}]
+        assert self.client._blocks_to_markdown(blocks) == "---"
+
+    def test_quote(self):
+        blocks = [{"type": "quote", "quote": {"rich_text": self._rt("인용")}}]
+        assert self.client._blocks_to_markdown(blocks) == "> 인용"
+
+    def test_callout(self):
+        blocks = [{"type": "callout", "callout": {"rich_text": self._rt("콜아웃")}}]
+        assert self.client._blocks_to_markdown(blocks) == "> 콜아웃"
+
+    def test_to_do_unchecked(self):
+        blocks = [{"type": "to_do", "to_do": {"checked": False, "rich_text": self._rt("할 일")}}]
+        assert self.client._blocks_to_markdown(blocks) == "- [ ] 할 일"
+
+    def test_to_do_checked(self):
+        blocks = [{"type": "to_do", "to_do": {"checked": True, "rich_text": self._rt("완료")}}]
+        assert self.client._blocks_to_markdown(blocks) == "- [x] 완료"
+
+    def test_bookmark(self):
+        blocks = [{"type": "bookmark", "bookmark": {"url": "https://example.com"}}]
+        assert self.client._blocks_to_markdown(blocks) == "https://example.com"
+
+    def test_image_external(self):
+        blocks = [{"type": "image", "image": {"type": "external", "external": {"url": "https://img.com/a.png"}}}]
+        assert self.client._blocks_to_markdown(blocks) == "![이미지](https://img.com/a.png)"
+
+    def test_image_file(self):
+        blocks = [{"type": "image", "image": {"type": "file", "file": {"url": "https://s3.com/b.png"}}}]
+        assert self.client._blocks_to_markdown(blocks) == "![이미지](https://s3.com/b.png)"
+
+    def test_table(self):
+        blocks = [{
+            "type": "table",
+            "table": {
+                "children": [
+                    {"table_row": {"cells": [self._rt("이름"), self._rt("나이")]}},
+                    {"table_row": {"cells": [self._rt("홍길동"), self._rt("30")]}},
+                ]
+            },
+        }]
+        result = self.client._blocks_to_markdown(blocks)
+        lines = result.split("\n")
+        assert lines[0] == "| 이름 | 나이 |"
+        assert lines[1] == "| --- | --- |"
+        assert lines[2] == "| 홍길동 | 30 |"
+
+    def test_unknown_block_type_skipped(self):
+        blocks = [{"type": "unsupported_type", "unsupported_type": {}}]
+        assert self.client._blocks_to_markdown(blocks) == ""
+
+    def test_empty_blocks(self):
+        assert self.client._blocks_to_markdown([]) == ""
+
+
+class TestReadPage:
+    """read_page 단위 테스트."""
+
+    def setup_method(self):
+        with patch("slack_to_notion.notion_client.Client"):
+            self.client = NotionClient("fake-api-key")
+            self.mock_api = self.client.client
+
+    def test_success(self):
+        self.mock_api.pages.retrieve.return_value = {
+            "properties": {
+                "title": {
+                    "type": "title",
+                    "title": [{"type": "text", "text": {"content": "테스트 페이지"}}],
+                }
+            },
+            "url": "https://www.notion.so/test-page-id",
+        }
+        self.mock_api.blocks.children.list.return_value = {
+            "results": [
+                {"type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "본문 내용"}}]}},
+            ],
+            "has_more": False,
+        }
+
+        result = self.client.read_page("test-page-id")
+
+        assert result["title"] == "테스트 페이지"
+        assert result["url"] == "https://www.notion.so/test-page-id"
+        assert "본문 내용" in result["content"]
+
+    def test_pagination(self):
+        """has_more=True 시 next_cursor로 다음 페이지를 조회한다."""
+        self.mock_api.pages.retrieve.return_value = {
+            "properties": {"title": {"type": "title", "title": [{"type": "text", "text": {"content": "페이지"}}]}},
+            "url": "https://notion.so/p",
+        }
+        self.mock_api.blocks.children.list.side_effect = [
+            {
+                "results": [{"type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "첫 번째"}}]}}],
+                "has_more": True,
+                "next_cursor": "cursor-1",
+            },
+            {
+                "results": [{"type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "두 번째"}}]}}],
+                "has_more": False,
+            },
+        ]
+
+        result = self.client.read_page("page-id")
+
+        assert "첫 번째" in result["content"]
+        assert "두 번째" in result["content"]
+        calls = self.mock_api.blocks.children.list.call_args_list
+        assert len(calls) == 2
+        assert calls[1][1]["start_cursor"] == "cursor-1"
+
+    def test_api_error_raises_notion_client_error(self):
+        import httpx
+        from notion_client.errors import APIResponseError
+        from slack_to_notion.notion_client import NotionClientError
+
+        err = APIResponseError(
+            code="object_not_found",
+            status=404,
+            message="Not found",
+            headers=httpx.Headers(),
+            raw_body_text="",
+        )
+        self.mock_api.pages.retrieve.side_effect = err
+
+        with pytest.raises(NotionClientError) as exc_info:
+            self.client.read_page("nonexistent-id")
+
+        assert "찾을 수 없습니다" in exc_info.value.message
+
+
 class TestNotionClientErrorFormatting:
     """에러 메시지 변환 테스트."""
 

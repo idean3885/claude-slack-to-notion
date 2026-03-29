@@ -524,6 +524,66 @@ class TestCreateNotionPageErrors:
             assert "[에러]" in result
 
 
+class TestReadNotionPage:
+    """read_notion_page 도구 테스트."""
+
+    def _call_tool(self, page_url_or_id, mock_read_page_return=None, side_effect=None):
+        env = {"NOTION_API_KEY": "fake-key"}
+        with patch.dict("os.environ", env, clear=False), \
+             patch("slack_to_notion.mcp_server._notion_client", None), \
+             patch("slack_to_notion.notion_client.Client") as mock_cls:
+            mock_api = mock_cls.return_value
+            if side_effect is not None:
+                mock_api.pages.retrieve.side_effect = side_effect
+            else:
+                mock_api.pages.retrieve.return_value = mock_read_page_return or {
+                    "properties": {
+                        "title": {
+                            "type": "title",
+                            "title": [{"type": "text", "text": {"content": "테스트 페이지"}}],
+                        }
+                    },
+                    "url": "https://www.notion.so/test-page-id",
+                }
+                mock_api.blocks.children.list.return_value = {
+                    "results": [
+                        {"type": "paragraph", "paragraph": {"rich_text": [{"type": "text", "text": {"content": "본문 내용"}}]}},
+                    ],
+                    "has_more": False,
+                }
+
+            from slack_to_notion.mcp_server import read_notion_page
+            return read_notion_page(page_url_or_id)
+
+    def test_success(self):
+        result = self._call_tool("test-page-id")
+        assert "테스트 페이지" in result
+        assert "본문 내용" in result
+        assert "https://www.notion.so/test-page-id" in result
+
+    def test_notion_client_error(self):
+        import httpx
+        from notion_client.errors import APIResponseError
+        err = APIResponseError(
+            code="object_not_found",
+            status=404,
+            message="Not found",
+            headers=httpx.Headers(),
+            raw_body_text="",
+        )
+        result = self._call_tool("nonexistent-id", side_effect=err)
+        assert "[에러]" in result
+
+    def test_unexpected_exception(self):
+        result = self._call_tool("bad-id", side_effect=RuntimeError("연결 실패"))
+        assert "[에러]" in result
+        assert "Notion 페이지 읽기 실패" in result
+
+    def test_url_input(self):
+        result = self._call_tool("https://www.notion.so/30829a38f6df80769e03d841eaad4f15")
+        assert "테스트 페이지" in result
+
+
 class TestMainHelp:
     """main 함수 --help 플래그 테스트."""
 

@@ -236,6 +236,160 @@ class NotionClient:
         except APIResponseError as e:
             raise NotionClientError(self._format_error_message(e)) from e
 
+    def _extract_rich_text(self, rich_text: list[dict]) -> str:
+        """Notion rich_text 배열에서 마크다운 텍스트를 추출한다.
+
+        annotations(bold, italic, code, strikethrough)와 link를 반영한다.
+        """
+        parts = []
+        for segment in rich_text:
+            text = segment.get("text", {}).get("content", "")
+            link_url = segment.get("text", {}).get("link", {})
+            if isinstance(link_url, dict):
+                link_url = link_url.get("url", "")
+            else:
+                link_url = ""
+
+            annotations = segment.get("annotations", {})
+            bold = annotations.get("bold", False)
+            italic = annotations.get("italic", False)
+            code = annotations.get("code", False)
+            strikethrough = annotations.get("strikethrough", False)
+
+            if link_url:
+                text = f"[{text}]({link_url})"
+            if code:
+                text = f"`{text}`"
+            if bold:
+                text = f"**{text}**"
+            if italic:
+                text = f"*{text}*"
+            if strikethrough:
+                text = f"~~{text}~~"
+
+            parts.append(text)
+        return "".join(parts)
+
+    def _blocks_to_markdown(self, blocks: list[dict]) -> str:
+        """Notion 블록 리스트를 마크다운 텍스트로 변환한다.
+
+        지원 블록 타입: heading_1/2/3, paragraph, bulleted_list_item,
+        numbered_list_item, code, divider, table, toggle, callout, quote,
+        to_do, bookmark, image
+        """
+        lines = []
+        for block in blocks:
+            block_type = block.get("type", "")
+            data = block.get(block_type, {})
+
+            if block_type == "heading_1":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"# {text}")
+            elif block_type == "heading_2":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"## {text}")
+            elif block_type == "heading_3":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"### {text}")
+            elif block_type == "paragraph":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(text)
+            elif block_type == "bulleted_list_item":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"- {text}")
+            elif block_type == "numbered_list_item":
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"1. {text}")
+            elif block_type == "code":
+                language = data.get("language", "plain text")
+                code_text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"```{language}\n{code_text}\n```")
+            elif block_type == "divider":
+                lines.append("---")
+            elif block_type == "table":
+                rows = data.get("children", [])
+                if rows:
+                    md_rows = []
+                    for i, row in enumerate(rows):
+                        cells = row.get("table_row", {}).get("cells", [])
+                        cell_texts = [self._extract_rich_text(cell) for cell in cells]
+                        md_rows.append("| " + " | ".join(cell_texts) + " |")
+                        if i == 0:
+                            # 구분선
+                            md_rows.append("| " + " | ".join(["---"] * len(cell_texts)) + " |")
+                    lines.extend(md_rows)
+            elif block_type in ("toggle", "callout", "quote"):
+                text = self._extract_rich_text(data.get("rich_text", []))
+                lines.append(f"> {text}")
+                # toggle의 경우 children이 있으면 재귀 처리
+                if block_type == "toggle" and block.get("has_children"):
+                    try:
+                        children_resp = self.client.blocks.children.list(block_id=block["id"])
+                        child_blocks = children_resp.get("results", [])
+                        child_md = self._blocks_to_markdown(child_blocks)
+                        if child_md:
+                            for child_line in child_md.split("\n"):
+                                lines.append(f"> {child_line}")
+                    except APIResponseError:
+                        pass
+            elif block_type == "to_do":
+                checked = data.get("checked", False)
+                text = self._extract_rich_text(data.get("rich_text", []))
+                checkbox = "[x]" if checked else "[ ]"
+                lines.append(f"- {checkbox} {text}")
+            elif block_type == "bookmark":
+                url = data.get("url", "")
+                lines.append(url)
+            elif block_type == "image":
+                image_type = data.get("type", "")
+                if image_type == "external":
+                    url = data.get("external", {}).get("url", "")
+                elif image_type == "file":
+                    url = data.get("file", {}).get("url", "")
+                else:
+                    url = ""
+                lines.append(f"![이미지]({url})")
+            # 그 외 타입은 무시 (빈 줄)
+
+        return "\n".join(lines)
+
+    def read_page(self, page_id: str) -> dict:
+        """페이지의 제목과 내용을 읽는다.
+
+        Returns:
+            {"title": "페이지 제목", "content": "마크다운 텍스트", "url": "페이지 URL"}
+        """
+        try:
+            page = self.client.pages.retrieve(page_id=page_id)
+
+            # 제목 추출
+            title = ""
+            properties = page.get("properties", {})
+            for prop in properties.values():
+                if prop.get("type") == "title":
+                    title = self._extract_rich_text(prop.get("title", []))
+                    break
+
+            url = page.get("url", "")
+
+            # 블록 수집 (pagination)
+            blocks = []
+            cursor = None
+            while True:
+                kwargs: dict = {"block_id": page_id}
+                if cursor:
+                    kwargs["start_cursor"] = cursor
+                response = self.client.blocks.children.list(**kwargs)
+                blocks.extend(response.get("results", []))
+                if not response.get("has_more"):
+                    break
+                cursor = response.get("next_cursor")
+
+            content = self._blocks_to_markdown(blocks)
+            return {"title": title, "content": content, "url": url}
+        except APIResponseError as e:
+            raise NotionClientError(self._format_error_message(e)) from e
+
     def build_page_blocks(self, content_text: str) -> list[dict]:
         """자유 형식 텍스트를 Notion 블록으로 변환."""
         blocks = []

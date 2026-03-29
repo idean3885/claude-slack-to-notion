@@ -379,6 +379,28 @@ def create_notion_page(
 
 
 @mcp.tool()
+def read_notion_page(page_url_or_id: str) -> str:
+    """Notion 페이지의 내용을 읽는다.
+
+    Args:
+        page_url_or_id: Notion 페이지 URL 또는 ID
+
+    Returns:
+        페이지 제목과 마크다운 형식의 본문 텍스트
+    """
+    try:
+        client = _get_notion_client()
+        page_id = extract_page_id(page_url_or_id)
+        result = client.read_page(page_id)
+        return f"# {result['title']}\n\nURL: {result['url']}\n\n{result['content']}"
+    except NotionClientError as e:
+        return f"[에러] {e.message}"
+    except Exception as e:
+        logger.exception("예상치 못한 에러 발생")
+        return f"[에러] Notion 페이지 읽기 실패: {e!s}"
+
+
+@mcp.tool()
 def save_analysis_result(data_json: str, filename: str = "") -> str:
     """분석 결과를 로컬 JSON 파일로 백업한다.
 
