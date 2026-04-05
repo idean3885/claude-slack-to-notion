@@ -260,7 +260,7 @@ cp .env.example .env
 # 방식 A를 선택한 경우 (사용자 토큰)
 SLACK_USER_TOKEN=xoxp-1234-5678-abcdefgh                                          ← 1단계에서 복사한 값
 
-# 방식 B를 선택한 경우 (Bot 토큰) — 둘 중 하나만 설정
+# 방식 B를 선택한 경우 (Bot 토큰) - 둘 중 하나만 설정
 # SLACK_BOT_TOKEN=xoxb-1234-5678-abcdefgh                                        ← 1단계에서 복사한 값
 
 NOTION_API_KEY=ntn_abc123def456...                                                 ← 3단계에서 복사한 값

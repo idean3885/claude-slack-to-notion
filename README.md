@@ -37,7 +37,7 @@ graph LR
 
 1. [GitHub Releases](https://github.com/idean3885/claude-slack-to-notion/releases)에서 최신 `slack-to-notion-mcp.mcpb` 파일을 다운로드합니다
 2. 다운로드한 `.mcpb` 파일을 **더블클릭**합니다
-3. Claude Desktop이 열리며 토큰 입력 화면이 나타납니다 — 위에서 준비한 3개의 값을 붙여넣으세요
+3. Claude Desktop이 열리며 토큰 입력 화면이 나타납니다 - 위에서 준비한 3개의 값을 붙여넣으세요
 4. **확장 활성화**: 설치 후 **설정**(`⌘ + ,`) → **Extensions** → `Slack to Notion` 항목의 **토글을 켜주세요** (설치 직후에는 비활성화 상태입니다)
 5. 설치 완료! 입력창 우측 하단에 도구 아이콘이 나타나면 정상입니다
 
@@ -206,10 +206,10 @@ Slack 메시지 정리할 때 항상 날짜별로 묶어서 정리해줘. 기억
 
 ## 더 알아보기
 
-- [설치 및 토큰 설정 가이드](docs/setup-guide.md) — 토큰 발급, 업데이트, 수동 설치
-- [제공 도구 목록](docs/tools.md) — 플러그인이 제공하는 12개 MCP 도구
-- [개발자 가이드](docs/development.md) — 프로젝트 구조, 기술 스택, CI/CD, 기여 방법
-- [개발 과정](docs/decisions.md) — 주요 의사결정 히스토리
+- [설치 및 토큰 설정 가이드](docs/setup-guide.md) - 토큰 발급, 업데이트, 수동 설치
+- [제공 도구 목록](docs/tools.md) - 플러그인이 제공하는 12개 MCP 도구
+- [개발자 가이드](docs/development.md) - 프로젝트 구조, 기술 스택, CI/CD, 기여 방법
+- [개발 과정](docs/decisions.md) - 주요 의사결정 히스토리
 
 ## 라이선스
 

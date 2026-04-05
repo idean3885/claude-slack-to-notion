@@ -20,13 +20,13 @@
 
 ---
 
-## uvx, npx, jbang — 같은 문제, 다른 생태계
+## uvx, npx, jbang - 같은 문제, 다른 생태계
 
 세 도구 모두 하는 일은 같습니다. **패키지를 설치 없이 받아서 바로 실행**.
 
-- `npx create-react-app` — npm 패키지를 임시로 받아 실행
-- `jbang hello@jbangdev` — Java 코드를 빌드 없이 스크립트처럼 실행
-- `uvx slack-to-notion-mcp` — PyPI 패키지를 격리 환경에서 실행
+- `npx create-react-app` - npm 패키지를 임시로 받아 실행
+- `jbang hello@jbangdev` - Java 코드를 빌드 없이 스크립트처럼 실행
+- `uvx slack-to-notion-mcp` - PyPI 패키지를 격리 환경에서 실행
 
 시스템에 아무것도 남기지 않고, 종료하면 정리됩니다.
 
